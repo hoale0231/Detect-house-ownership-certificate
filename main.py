@@ -24,8 +24,9 @@ sodo = 'thửa đất nhà ở và tài sản khác gắn liền với số tờ
 form = convert_to_unsign(sodo).split()
 
 def is_sodo(img):
-  heso_form_same_sample = 0.5
+  heso_form_same_sample = 0.6
   heso_sample_same_form = 0.35
+  heso_min = 0.1
   # Đọc ảnh
   image = loadImage(img)
   sample = img_to_text_vietocr(image,'cuda:0')
@@ -52,10 +53,10 @@ def is_sodo(img):
   sample_same_form = sum([word in form for word in set(sample)])
   form_same_sample = sum([word in sample for word in form])
 
-  # print(sample_same_form/len(set(sample)))
-  # print(form_same_sample/len(form))
-  # print(len(sample))
-  return (sample_same_form/len(set(sample)) > heso_sample_same_form 
-          or form_same_sample/len(form) > heso_form_same_sample) and (
+  print(sample_same_form/len(set(sample)))
+  print(form_same_sample/len(form))
+  print(len(sample))
+  return (sample_same_form/len(set(sample)) > heso_sample_same_form or form_same_sample/len(form) > heso_form_same_sample) and (
+          sample_same_form/len(set(sample)) > heso_min and form_same_sample/len(form) > heso_min) and (
           len(sample) < 350), text
   
