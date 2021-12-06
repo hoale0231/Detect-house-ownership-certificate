@@ -52,15 +52,10 @@ def is_sodo(img):
   sample = convert_to_unsign(sample).split()
   sample_same_form = sum([word in form for word in set(sample)])
   form_same_sample = sum([word in sample for word in form])
-  
-  print(sample_same_form/len(set(sample)))
-  print(form_same_sample/len(form))
-  print(len(sample))
-  if len(set(sample)) == 0:
-    return False
-  return (sample_same_form/len(set(sample)) > heso_sample_same_form or form_same_sample/len(form) > heso_form_same_sample) and (
-          sample_same_form/len(set(sample)) > heso_min and form_same_sample/len(form) > heso_min) and (
-          len(sample) < 350), text
+
+  return  len(sample) < 350 and len(sample) > 5 and (
+          sample_same_form/len(set(sample)) > heso_sample_same_form or form_same_sample/len(form) > heso_form_same_sample) and (
+          sample_same_form/len(set(sample)) > heso_min and form_same_sample/len(form) > heso_min) , text
 
 count = 0
 for i in range(1, 51):
