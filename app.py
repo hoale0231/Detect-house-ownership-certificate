@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from tkinter import  Tk, filedialog, messagebox, Button, W, E, N, S, Label, Text, END
-from os import remove
+import os
+import cv2
 from glob import iglob
 from main import is_sodo
 from PIL import Image, ImageTk
-
 class App():
     def __init__(self, master):
         self.master = master
@@ -41,29 +41,63 @@ class App():
     def selectImage(self):
         self.text.delete(1.0, END)
         self.result['text'] = ""
-        try:
-            file_path = filedialog.askopenfilename()
-            img = Image.open(file_path)
-            img.thumbnail((1000, 650),)
-            photo = ImageTk.PhotoImage(img) 
-            self.label.configure(image = photo, height=photo.height(), width=photo.width())
-            self.label.image = photo
-            self.img = file_path
-        except:
-            messagebox.showwarning(title=None, message="File not valid!")
-        else:
-            self.checkButton['state'] = "normal"
-    
+        
+        folder = filedialog.askdirectory(title="Chọn thư mục chứa ảnh")
+        self.img = []
+        for filename in os.listdir(folder):
+            img = cv2.imread(os.path.join(folder,filename))
+            if img is not None:
+                print(filename)
+                self.img.append(os.path.join(folder,filename))
+        self.checkButton['state'] = "normal"
+        
+        # try:
+        #     file_path = filedialog.askopenfilename()
+        #     img = Image.open(file_path)
+        #     img.thumbnail((1000, 650),)
+        #     photo = ImageTk.PhotoImage(img) 
+        #     self.label.configure(image = photo, height=photo.height(), width=photo.width())
+        #     self.label.image = photo
+        #     self.img = file_path
+        # except:
+        #     messagebox.showwarning(title=None, message="File not valid!")
+        # else:
+        #     self.checkButton['state'] = "normal"
+    def saveResult(self):
+        #luu hinh so do
+        folder = filedialog.askdirectory(title="Chọn thư mục để lưu kết quả")
+        folder_Sodo = os.path.join(folder, "Sodo")
+        os.makedirs(folder_Sodo)
+        os.chdir(folder_Sodo)
+        for image in self.image_sodo:
+            filename = image.split('/')[len(image.split('/')) - 1]
+            cv2.imwrite(filename,cv2.imread(image))
+        #luu hinh ko la so do
+        folder_NotSodo = os.path.join(folder, "NotSodo")
+        os.makedirs(folder_NotSodo)
+        os.chdir(folder_NotSodo)
+        for image in self.image_notSodo:
+            filename = image.split('/')[len(image.split('/')) - 1]
+            cv2.imwrite(filename,cv2.imread(image))
+
     def checkSodo(self):
-        isSodo, text =is_sodo(self.img)
+        self.image_sodo=[]
+        self.image_notSodo=[]
+        for image in self.img:
+            isSodo=is_sodo(image)[0]
+            if isSodo:
+                self.image_sodo.append(image)
+            else:
+                self.image_notSodo.append(image)
+        self.saveResult()
         # Display text
-        self.text.insert(END, text)
-        self.result['text'] = "Hình ảnh là sổ đỏ" if isSodo else "Hình ảnh không là sổ đỏ"
+        # self.text.insert(END, text)
+        # self.result['text'] = "Hình ảnh là sổ đỏ" if isSodo else "Hình ảnh không là sổ đỏ"
         
     
     def handler(self):
         for file in iglob('ocrproc_*'):
-            remove(file) 
+            os.remove(file) 
         self.master.destroy()
 
 root = Tk()
