@@ -1,5 +1,6 @@
 # Detect house ownership certificate
 
+## Pre
 ## Version
 ```
 Python 3.7.9
@@ -7,5 +8,5 @@ Python 3.7.9
 
 ## Run app
 ```
-python run.py
+python app.py
 ```

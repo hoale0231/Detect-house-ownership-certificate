@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-from tkinter import  Tk, filedialog, messagebox, Button, W, E, N, S, Label, Text, END
+from tkinter import Tk, filedialog, messagebox, Button, W, E, N, S, Label, Text, END
 import os
 import cv2
 from glob import iglob
 from main import is_sodo
 from PIL import Image, ImageTk
 import threading
+import time        
 
 class App():
     def __init__(self, master):
         self.master = master
         self.master.title("Sổ đỏ")
-        self.master.protocol("WM_DELETE_WINDOW", self.handler)
         self.createWidgets()
   
     def createWidgets(self):
@@ -49,6 +49,7 @@ class App():
         
         # Mode: check image 0 or filter folder 1
         self.mode = 0
+        
         # Save result for mode 1
         self.image_sodo=[]
         self.image_notSodo=[]
@@ -86,19 +87,20 @@ class App():
         self.checkButton['state'] = "normal"        
             
     def saveResult(self):
-        #luu hinh so do
         owd = os.getcwd()
         folder = filedialog.askdirectory(title="Chọn thư mục để lưu kết quả")
+        
+        #luu hinh so do
         folder_Sodo = os.path.join(folder, "Sodo")
         if not os.path.exists(folder_Sodo):
             os.makedirs(folder_Sodo)
         os.chdir(folder_Sodo)
-        
         for image in self.image_sodo:
             filename = image.split('\\')[-1]
             cv2.imwrite(filename, cv2.imread(image))
+            
         #luu hinh ko la so do
-        folder_NotSodo = os.path.join(folder, "NotSodo")
+        folder_NotSodo = os.path.join(folder, "Khac")
         if not os.path.exists(folder_NotSodo):
             os.makedirs(folder_NotSodo)
         os.chdir(folder_NotSodo)
@@ -119,19 +121,11 @@ class App():
     def filterFolder(self):
         self.image_sodo=[]
         self.image_notSodo=[]
-        threads = []
         for image in self.imgs:
             self.checkImg(image)
-            # self.setImg(image)
-        #     t = threading.Thread(target=self.checkImg, args=[image])
-        #     t.start()
-        #     threads.append(t)
-        # for thread in threads:
-        #     thread.join()
         self.saveResult()       
         self.result['text'] = "Hoàn thành"
          
-    
     def checkImg(self, img):
         isSodo, text = is_sodo(img)
         if self.mode == 1:
@@ -142,11 +136,6 @@ class App():
         else:
             self.text.insert(END, text)
             self.result['text'] = "Hình ảnh là sổ đỏ" if isSodo else "Hình ảnh không là sổ đỏ"
-
-    def handler(self):
-        for file in iglob('ocrproc_*'):
-            os.remove(file) 
-        self.master.destroy()
 
 root = Tk()
 myapp = App(root)

@@ -12,7 +12,6 @@ import cv2
 import numpy as np
 import craft_utils
 import imgproc
-import file_utils
 from craft import CRAFT
 from collections import OrderedDict
 import copy
@@ -20,7 +19,6 @@ import platform
 import os
 
 sys.path.insert(0, os.path.abspath('./module/'))
-
 
 def preprocessing(img_path):
     # example: img_path='/content/drive/My Drive/ocr_demo_code/test_imgs/test_1708/0.jpg'
@@ -280,8 +278,8 @@ def img_to_text_vietocr(image, isTable=False, isCrop=False):
     for idx, x in enumerate(central_poly_indexes):
         point = Point(x[idx][0], x[idx][1], idx)
         X.append(point)
-    file_utils.saveResult("./pre_newimage.jpg",
-                          image[:, :, ::-1], polys, dirname='./imageStorage')
+    # file_utils.saveResult("./pre_newimage.jpg",
+    #                       image[:, :, ::-1], polys, dirname='./imageStorage')
     poly = False
     refine_net = None
     if isTable:
@@ -325,8 +323,8 @@ def img_to_text_vietocr(image, isTable=False, isCrop=False):
 
         cluster_values.append([left_above_min_vertex, left_below_min_vertex,
                               right_above_max_vertex, right_below_max_vertex])
-    file_utils.saveResult('./dbscan_pre_newimage.jpg',
-                          image[:, :, ::-1], cluster_values, dirname='imageStorage')
+    # file_utils.saveResult('./dbscan_pre_newimage.jpg',
+    #                       image[:, :, ::-1], cluster_values, dirname='imageStorage')
 
     img = np.array(image[:, :, ::-1])
     res = []
