@@ -19,7 +19,7 @@ python main.py
 1. Click `Select Image` button.
 2. Select image.
 3. Click `start button`.
-4. See result
+4. See result.
 
 ### Folder filter
 1. Click 'Select Folder' button.
