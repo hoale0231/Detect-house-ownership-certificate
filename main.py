@@ -1,83 +1,140 @@
 # -*- coding: utf-8 -*-
-from imgproc import loadImage
-from ocr_pipeline import img_to_text_vietocr
-import regex as re
-from string import punctuation
-import numpy as np
-from skimage.transform import rotate
-from deskew import determine_skew
+from tkinter import Tk, filedialog, messagebox, Button, W, E, N, S, Label, Text, END
+import os
+import cv2
+from sodo import is_sodo
+from PIL import Image, ImageTk
+import threading
 
-def angle_deskew(_img):
-  return determine_skew(_img)
+class App():
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Sổ đỏ")
+        self.createWidgets()
+  
+    def createWidgets(self):
+        # Create a label to display the img
+        self.label = Label(self.master, height=20, width=100)
+        self.label.grid(row=0, column=0, rowspan=2, columnspan=2,sticky=W+E+N+S, padx=5, pady=5)
+        
+        # Create button select img
+        self.selectImageButton = Button(self.master)
+        self.selectImageButton = Button(self.master, width=20, padx=3, pady=3)
+        self.selectImageButton["text"] = "Select Image"
+        self.selectImageButton["command"] = self.selectImage
+        self.selectImageButton.grid(row=2, column=0, padx=2, pady=2)
+        
+        # Create button select img
+        self.selectFolderButton = Button(self.master)
+        self.selectFolderButton = Button(self.master, width=20, padx=3, pady=3)
+        self.selectFolderButton["text"] = "Select Folder"
+        self.selectFolderButton["command"] = self.selectFolder
+        self.selectFolderButton.grid(row=2, column=1, padx=2, pady=2)
+        
+        # Create button check img
+        self.checkButton = Button(self.master, width=20, padx=3, pady=3)
+        self.checkButton["text"] = "Start"
+        self.checkButton["command"] = self.start
+        self.checkButton.grid(row=2, column=2, padx=2, pady=2)
+        self.checkButton['state'] = "disable"
+        
+        # Create text widget
+        self.text = Text(self.master, width=20, padx=2, pady=2)
+        self.text.grid(row=0, column=2, sticky=W+E+N+S)
+        
+        self.result = Label(self.master)
+        self.result.grid(row=1, column=2, padx=2, pady=2, sticky=W+E+N+S)
+        
+        # Mode: check image 0 or filter folder 1
+        self.mode = 0
+        
+        # Save result for mode 1
+        self.image_sodo=[]
+        self.image_notSodo=[]
+        
+    def selectImage(self):
+        self.mode = 0
+        self.text.delete(1.0, END)
+        self.result['text'] = ""
+        try:
+            self.setImg(filedialog.askopenfilename(title="Chọn ảnh"))
+        except:
+            messagebox.showwarning(title=None, message="File not valid!")
+        else:
+            self.checkButton['state'] = "normal"
     
-  
-patterns = {
-    '[àáảãạăắằẵặẳâầấậẫẩ]': 'a',
-    '[đ]': 'd',
-    '[èéẻẽẹêềếểễệ]': 'e',
-    '[ìíỉĩị]': 'i',
-    '[òóỏõọôồốổỗộơờớởỡợ]': 'o',
-    '[ùúủũụưừứửữự]': 'u',
-    '[ỳýỷỹỵ]': 'y'
-}
+    def setImg(self, file_path):
+        img = Image.open(file_path)
+        img.thumbnail((1000, 650),)
+        img = ImageTk.PhotoImage(img) 
+        self.label.configure(image = img, height=img.height(), width=img.width())
+        self.label.image = img
+        self.img = file_path
+         
+    def selectFolder(self):
+        self.mode = 1
+        self.text.delete(1.0, END)
+        self.result['text'] = ""
+        
+        folder = filedialog.askdirectory(title="Chọn thư mục chứa ảnh")
+        self.imgs = []
+        for filename in os.listdir(folder):
+            img = cv2.imread(os.path.join(folder,filename))
+            if img is not None:
+                self.imgs.append(os.path.join(folder,filename))
+        self.checkButton['state'] = "normal"        
+            
+    def saveResult(self):
+        owd = os.getcwd()
+        folder = filedialog.askdirectory(title="Chọn thư mục để lưu kết quả")
+        
+        #luu hinh so do
+        folder_Sodo = os.path.join(folder, "Sodo")
+        if not os.path.exists(folder_Sodo):
+            os.makedirs(folder_Sodo)
+        os.chdir(folder_Sodo)
+        for image in self.image_sodo:
+            filename = image.split('\\')[-1]
+            cv2.imwrite(filename, cv2.imread(image))
+            
+        #luu hinh ko la so do
+        folder_NotSodo = os.path.join(folder, "Khac")
+        if not os.path.exists(folder_NotSodo):
+            os.makedirs(folder_NotSodo)
+        os.chdir(folder_NotSodo)
+        for image in self.image_notSodo:
+            filename = image.split('\\')[-1]
+            cv2.imwrite(filename, cv2.imread(image))
+            
+        os.chdir(owd)
 
-def convert_to_unsign(text):
-    output = text
-    for regex, replace in patterns.items():
-        output = re.sub(regex, replace, output)
-    return output
-
-sodo = 'thửa đất nhà ở và tài sản khác gắn liền với số tờ bản đồ địa chỉ diện tích hình thức sử dụng mục đích thời hạn nguồn gốc công trình xây dựng rừng xuất là trồng cây lâu năm ghi chú sơ hiệu đỉnh chiều dài những thay đổi sau khi cấp giấy chứng nhận nội dung cơ sở pháp lý xác của quan có thẩm quyền bảng liệt kê tọa độ góc ranh cạnh'
-form = convert_to_unsign(sodo).split()
-# const
-heso_sample_same_form = 0.4
-heso_form_same_sample = 0.68
-heso_min = 0.1
-
-def is_sodo_straight(image):
-  # Đọc ảnh
-  sample = img_to_text_vietocr(image,'cuda:0')
-  # Chuyển về ký tự in thường
-  sample = ' '.join(sample).lower()
-  # Xóa các dấu câu
-  for c in punctuation:
-    sample = sample.replace(c," ")
-  # Xử lý các từ thường xuyên đọc sai
-  sample = sample.split()
-  for i in range(len(sample)):
-    if re.search("th.a", sample[i]):
-      sample[i] = "thửa" 
-    if  (sample[i].isdigit() or
-        (sample.count(sample[i]) > 4 and sample[i] != "đất") or
-        (len(sample[i]) == 1 or len(sample[i]) > 7)):
-      sample[i] = ""
-
-  sample = ' '.join(sample)
-  sample = re.sub(' +', ' ', sample)
-  # So sánh với sổ đỏ mẫu
-  text = sample
-  sample = convert_to_unsign(sample).split()
-  sample_same_form = sum([word in form for word in set(sample)])
-  form_same_sample = sum([word in sample for word in form])
-  
-  if len(set(sample)) == 0:
-    return False, ""
-  # print(sample_same_form/len(set(sample)))
-  # print(form_same_sample/len(form))
-  # print(len(sample))
-  return  len(sample) < 350 and len(sample) > 5 and (
-          sample_same_form/len(set(sample)) > heso_sample_same_form or form_same_sample/len(form) > heso_form_same_sample) and (
-          sample_same_form/len(set(sample)) > heso_min and form_same_sample/len(form) > heso_min), text
-
-def is_sodo(image):
-  image = loadImage(image)
-  angle = angle_deskew(image)
-  for i in range(4):
-    rotated = rotate(image, angle + 90 * i, resize=True) * 255
-    result, text = is_sodo_straight(rotated.astype(np.uint8))
-    if(result):
-      return True, text 
-  return False, ""
+    def start(self):
+        if self.mode == 0:
+            threading.Thread(target=self.checkImg, args=[self.img]).start()
+        else:
+            threading.Thread(target=self.filterFolder).start()
+            
+        self.result['text'] = "Loading..."
     
-  
+    def filterFolder(self):
+        self.image_sodo=[]
+        self.image_notSodo=[]
+        for image in self.imgs:
+            self.checkImg(image)
+        self.saveResult()       
+        self.result['text'] = "Hoàn thành"
+         
+    def checkImg(self, img):
+        isSodo, text = is_sodo(img)
+        if self.mode == 1:
+            if isSodo:
+                self.image_sodo.append(img)
+            else:
+                self.image_notSodo.append(img)
+        else:
+            self.text.insert(END, text)
+            self.result['text'] = "Hình ảnh là sổ đỏ" if isSodo else "Hình ảnh không là sổ đỏ"
 
+root = Tk()
+myapp = App(root)
+root.mainloop()
